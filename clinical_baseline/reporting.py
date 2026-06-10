@@ -11,7 +11,17 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from clinical_baseline.constants import MODEL_NAME, TARGET
+from clinical_baseline.constants import MODEL_NAME, NO_NOTES_MODEL_NAME, TARGET
+
+
+PLACEHOLDER_MODEL_NAMES = {
+    "Your model name A ",
+    "Your model name B",
+    "Your model name C",
+    "model_a",
+    "model_b",
+    "model_c",
+}
 
 
 def update_reference_reports(
@@ -45,7 +55,9 @@ def update_reference_reports(
     pathway.setdefault("hackathon", "MultimodalAI26")
     pathway["submitted"] = str(date.today())
     pathway.setdefault("team", {"name": "", "members": ""})
-    pathway["models"] = upsert_model(pathway.get("models", []), model_entry)
+    pathway["models"] = upsert_model(
+        prune_placeholder_models(pathway.get("models", [])), model_entry
+    )
     pathway.setdefault("overall_notes", "")
 
     safety.setdefault("schema_version", "omaib-clinical")
@@ -54,8 +66,61 @@ def update_reference_reports(
     safety.setdefault("hackathon", "MultimodalAI26")
     safety["evaluation_date"] = str(date.today())
     safety.setdefault("team", {"name": "", "members": ""})
-    safety["models"] = upsert_model(safety.get("models", []), safety_entry)
+    safety["models"] = upsert_model(
+        prune_placeholder_models(safety.get("models", [])), safety_entry
+    )
     safety.setdefault("overall_notes", "")
+
+    write_json(pathway_path, pathway)
+    write_json(safety_path, safety)
+
+
+def update_no_notes_reference_reports(
+    reference_dir: Path,
+    metrics: dict,
+    subgroup_df: pd.DataFrame,
+    coefficients_df: pd.DataFrame,
+    threshold_sweep_rows: list[dict],
+) -> None:
+    """Insert or update the no-notes modality ablation in the submission JSON files."""
+    reference_dir.mkdir(parents=True, exist_ok=True)
+    pathway_path = reference_dir / "omaib_pathway.json"
+    safety_path = reference_dir / "model_safety_report.json"
+
+    pathway = load_json(pathway_path)
+    safety = load_json(safety_path)
+
+    model_entry = build_no_notes_pathway_model_entry(metrics, subgroup_df)
+    safety_entry = build_no_notes_safety_model_entry(
+        metrics,
+        subgroup_df,
+        coefficients_df,
+        threshold_sweep_rows,
+    )
+
+    pathway.setdefault("schema_version", "omaib-clinical")
+    pathway.setdefault("submission_type", "model_safety_report")
+    pathway.setdefault("strand", "clinical")
+    pathway.setdefault("hackathon", "MultimodalAI26")
+    pathway["submitted"] = str(date.today())
+    pathway.setdefault("team", {"name": "", "members": ""})
+    pathway["models"] = upsert_model(
+        prune_placeholder_models(pathway.get("models", [])), model_entry
+    )
+    if is_blank(pathway.get("overall_notes", "")):
+        pathway["overall_notes"] = modality_comparison_notes()
+
+    safety.setdefault("schema_version", "omaib-clinical")
+    safety.setdefault("report_type", "model_safety_report")
+    safety.setdefault("strand", "clinical")
+    safety.setdefault("hackathon", "MultimodalAI26")
+    safety["evaluation_date"] = str(date.today())
+    safety.setdefault("team", {"name": "", "members": ""})
+    safety["models"] = upsert_model(
+        prune_placeholder_models(safety.get("models", [])), safety_entry
+    )
+    if is_blank(safety.get("overall_notes", "")):
+        safety["overall_notes"] = modality_comparison_notes()
 
     write_json(pathway_path, pathway)
     write_json(safety_path, safety)
@@ -135,8 +200,9 @@ def build_safety_model_entry(
                 f"Top negative coefficients: {', '.join(top_neg)}."
             ),
             "model_disagreement": (
-                "No second deployable model is used for disagreement analysis. The "
-                f"icu_hours sensitivity check is marked non-deployable; AUROC "
+                "Use structured_no_notes_baseline as the notes-modality ablation and "
+                "data_availability_moe as the dynamic multimodal comparator. The "
+                "icu_hours sensitivity check remains non-deployable; AUROC "
                 f"{icu_hours_summary.get('auroc_delta_text', 'delta unavailable')}."
             ),
         },
@@ -187,6 +253,132 @@ def build_safety_model_entry(
     }
 
 
+def build_no_notes_pathway_model_entry(
+    metrics: dict, subgroup_df: pd.DataFrame
+) -> dict:
+    calibrated = metrics["main"]["calibrated"]
+    return {
+        "name": NO_NOTES_MODEL_NAME,
+        "verdict": "CONDITIONAL",
+        "conditions": no_notes_conditions_text(),
+        "narrative": no_notes_narrative_text(metrics),
+        "metrics": compact_metrics(calibrated),
+        "subgroup_gaps": subgroup_gap_dict(subgroup_df),
+    }
+
+
+def build_no_notes_safety_model_entry(
+    metrics: dict,
+    subgroup_df: pd.DataFrame,
+    coefficients_df: pd.DataFrame,
+    threshold_sweep_rows: list[dict],
+) -> dict:
+    calibrated = metrics["main"]["calibrated"]
+    top_pos = top_coefficients(coefficients_df, "positive")
+    top_neg = top_coefficients(coefficients_df, "negative")
+    worst = worst_subgroup(subgroup_df)
+    orthopaedic = subgroup_value_summary(subgroup_df, "surgery_type", "orthopaedic")
+    low_sofa = subgroup_value_summary(subgroup_df, "sofa_quartile", "q1_lowest")
+    elective = subgroup_value_summary(subgroup_df, "admission_urgency", "elective")
+
+    return {
+        "name": NO_NOTES_MODEL_NAME,
+        "label": "Structured no-notes modality ablation",
+        "verdict": "CONDITIONAL",
+        "conditions": no_notes_conditions_text(),
+        "narrative": no_notes_narrative_text(metrics),
+        "metrics": compact_metrics(calibrated),
+        "subgroup_gaps": subgroup_gap_dict(subgroup_df),
+        "deployment_questions": {
+            "q1_miss_rate": (
+                f"At threshold {calibrated['threshold']:.4f}, the no-notes model missed "
+                f"{calibrated['fn']} of {calibrated['n_positive']} deteriorations on the "
+                "held-out test set."
+            ),
+            "q2_alert_precision": (
+                f"Alert precision (PPV) was {calibrated['ppv']:.3f}; "
+                f"{calibrated['tp'] + calibrated['fp']} test patients were flagged."
+            ),
+            "q3_clearance_safety": (
+                f"NPV was {calibrated['npv']:.3f}. A low no-notes risk score should not "
+                "clear a patient without standard bedside monitoring because the notes "
+                "modality was intentionally unavailable."
+            ),
+            "q4_discrimination": (
+                f"AUROC was {calibrated['auroc']:.3f} and AUPRC was "
+                f"{calibrated['auprc']:.3f}. Largest observed subgroup sensitivity gap "
+                f"was {worst['gap_text']} in {worst['label']}."
+            ),
+            "q5_calibration": (
+                f"Calibrated Brier score was {calibrated['brier_score']:.3f}. "
+                "Probabilities are calibrated on the validation split and should be "
+                "rechecked prospectively if notes are absent in a new ward workflow."
+            ),
+        },
+        "failure_analysis": {
+            "who_is_missed": (
+                f"Misses concentrate most in {worst['label']} "
+                f"(sensitivity {worst['sensitivity_text']}, n={worst['n']}, "
+                f"positives={worst['positives']})."
+            ),
+            "false_alarm_profile": (
+                f"The threshold produced {calibrated['fp']} false positives and "
+                f"specificity {calibrated['specificity']:.3f}; alert burden is similar "
+                "to the note-aware structured baseline but without note context."
+            ),
+            "feature_importance_interpretation": (
+                f"Top positive coefficients without notes: {', '.join(top_pos)}. "
+                f"Top negative coefficients: {', '.join(top_neg)}."
+            ),
+            "model_disagreement": (
+                "This model is the planned notes-modality ablation: compare it with "
+                "clinical_elastic_net_baseline and data_availability_moe to isolate the "
+                "incremental evidence carried by note-risk and NLP features."
+            ),
+        },
+        "option_specific": {
+            "type": "threshold_sensitivity_report",
+            "title": "No-notes modality threshold sensitivity",
+            "content": {
+                "thresholds_tested": [row["threshold"] for row in threshold_sweep_rows],
+                "signal_at_each_threshold": threshold_sweep_rows,
+                "recommended_threshold": calibrated["threshold"],
+                "rationale": (
+                    "Recommended threshold is the highest validation-set calibrated "
+                    "risk threshold that achieved target sensitivity >= 0.80 while "
+                    "excluding note availability and note-risk features."
+                ),
+            },
+        },
+        "explainability": {
+            "output_type": "standardized_log_odds_coefficients",
+            "description": (
+                "Linear coefficients from an elastic-net logistic model that excludes "
+                "has_notes, note_risk_score_imputed, and note_risk_score_missing. "
+                "The remaining structured, laboratory, and vital-sign features are "
+                "median-imputed and standardized."
+            ),
+        },
+        "failure_catalogue": [
+            {
+                "mode": "Orthopaedic sensitivity gap",
+                "example": orthopaedic,
+                "subgroup": "surgery_type=orthopaedic",
+            },
+            {
+                "mode": "Low SOFA deterioration misses",
+                "example": low_sofa,
+                "subgroup": "sofa_quartile=q1_lowest",
+            },
+            {
+                "mode": "Elective admission under-detection",
+                "example": elective,
+                "subgroup": "admission_urgency=elective",
+            },
+        ],
+    }
+
+
 def compact_metrics(metrics: dict) -> dict:
     keys = [
         "auroc",
@@ -223,6 +415,35 @@ def narrative_text(metrics: dict) -> str:
         f"{calibrated['sensitivity']:.3f}, and Brier score {calibrated['brier_score']:.3f}. "
         f"Raw AUROC was {raw['auroc']:.3f}; calibrated probabilities are the reported "
         "risk output."
+    )
+
+
+def no_notes_conditions_text() -> str:
+    return (
+        "Conditional comparator only: use to quantify performance when clinical notes "
+        "are unavailable, not as a preferred standalone deployment model. Any deployment "
+        "must audit orthopaedic, low-SOFA, and elective-admission sensitivity."
+    )
+
+
+def no_notes_narrative_text(metrics: dict) -> str:
+    calibrated = metrics["main"]["calibrated"]
+    return (
+        "Structured no-notes modality ablation trained the same calibrated elastic-net "
+        "logistic architecture as the clinical baseline but excluded has_notes, "
+        "note_risk_score_imputed, and note_risk_score_missing. On held-out test data, "
+        f"AUROC was {calibrated['auroc']:.3f}, AUPRC {calibrated['auprc']:.3f}, "
+        f"sensitivity {calibrated['sensitivity']:.3f}, and Brier score "
+        f"{calibrated['brier_score']:.3f}. The result supports modality comparison "
+        "against note-aware and MoE models rather than replacing them."
+    )
+
+
+def modality_comparison_notes() -> str:
+    return (
+        "Submission compares three ICU deterioration approaches: a structured no-notes "
+        "ablation, a note-aware structured elastic-net baseline, and a data-availability "
+        "MoE with dynamic vitals, notes, and uncertainty outputs."
     )
 
 
@@ -265,10 +486,36 @@ def subgroup_lookup(subgroup_df: pd.DataFrame, group_col: str) -> str:
     return "; ".join(parts)
 
 
-def top_coefficients(coefficients_df: pd.DataFrame, direction: str, n: int = 5) -> list[str]:
+def subgroup_value_summary(
+    subgroup_df: pd.DataFrame, group_col: str, group_value: str
+) -> str:
+    rows = subgroup_df[
+        (subgroup_df["group_col"] == group_col)
+        & (subgroup_df["group_value"].astype(str) == group_value)
+    ]
+    if rows.empty:
+        return f"{group_col}={group_value}: subgroup metrics unavailable."
+    row = rows.iloc[0]
+    sens = "unavailable" if pd.isna(row["sensitivity"]) else f"{row['sensitivity']:.3f}"
+    gap = (
+        "unavailable"
+        if pd.isna(row["sensitivity_gap_vs_overall"])
+        else f"{row['sensitivity_gap_vs_overall']:.3f}"
+    )
+    return (
+        f"{group_col}={group_value}: sensitivity {sens}, gap vs overall {gap}, "
+        f"n={int(row['n'])}, positives={int(row['positives'])}."
+    )
+
+
+def top_coefficients(
+    coefficients_df: pd.DataFrame, direction: str, n: int = 5
+) -> list[str]:
     rows = coefficients_df[coefficients_df["direction"] == direction]
     rows = rows.sort_values("coefficient", ascending=(direction == "negative")).head(n)
-    return [f"{row.feature} ({row.coefficient:.3f})" for row in rows.itertuples(index=False)]
+    return [
+        f"{row.feature} ({row.coefficient:.3f})" for row in rows.itertuples(index=False)
+    ]
 
 
 def upsert_model(models: list[dict], new_model: dict) -> list[dict]:
@@ -285,6 +532,16 @@ def upsert_model(models: list[dict], new_model: dict) -> list[dict]:
     return out
 
 
+def prune_placeholder_models(models: list[dict]) -> list[dict]:
+    return [
+        model for model in models if model.get("name") not in PLACEHOLDER_MODEL_NAMES
+    ]
+
+
+def is_blank(value: Any) -> bool:
+    return not str(value).strip()
+
+
 def load_json(path: Path) -> dict:
     if not path.exists():
         return {}
@@ -293,7 +550,8 @@ def load_json(path: Path) -> dict:
 
 def write_json(path: Path, data: dict) -> None:
     path.write_text(
-        json.dumps(to_jsonable(data), indent=2, ensure_ascii=False, allow_nan=False) + "\n",
+        json.dumps(to_jsonable(data), indent=2, ensure_ascii=False, allow_nan=False)
+        + "\n",
         encoding="utf-8",
     )
 

@@ -5,80 +5,46 @@
   "hackathon": "MultimodalAI26",
   "submitted": "2026-06-10",
   "team": {
-    "name": "",
-    "members": ""
+    "name": "trusta",
+    "members": "kairui zhang, ziwen yu, ting zhou, bolin chen"
   },
   "models": [
     {
-      "name": "Your model name A ",
-      "verdict": "e.g. APPROVE, CONDITIONAL, or NOT APPROVED",
-      "conditions": "",
-      "narrative": "",
+      "name": "structured_no_notes_baseline",
+      "verdict": "CONDITIONAL",
+      "conditions": "Conditional comparator only: use to quantify performance when clinical notes are unavailable, not as a preferred standalone deployment model. Any deployment must audit orthopaedic, low-SOFA, and elective-admission sensitivity.",
+      "narrative": "Structured no-notes modality ablation trained the same calibrated elastic-net logistic architecture as the clinical baseline but excluded has_notes, note_risk_score_imputed, and note_risk_score_missing. On held-out test data, AUROC was 0.743, AUPRC 0.698, sensitivity 0.783, and Brier score 0.198. The result supports modality comparison against note-aware and MoE models rather than replacing them.",
       "metrics": {
-        "auroc": 0.0,
-        "auprc": 0.0,
-        "brier_score": 0.0,
-        "sensitivity": 0.0,
-        "specificity": 0.0,
-        "ppv": 0.0,
-        "npv": 0.0,
-        "f1": 0.0,
-        "threshold": 0.5,
-        "n_total": 0,
-        "n_positive": 0
+        "auroc": 0.7434,
+        "auprc": 0.6978,
+        "brier_score": 0.1984,
+        "sensitivity": 0.7833,
+        "specificity": 0.5155,
+        "ppv": 0.5393,
+        "npv": 0.7667,
+        "f1": 0.6388,
+        "threshold": 0.305,
+        "n_total": 1000,
+        "n_positive": 420
       },
       "subgroup_gaps": {
-        "under_65": 0.0,
-        "65_to_74": 0.0,
-        "75_plus": 0.0
-      }
-    },
-    {
-      "name": "Your model name B",
-      "verdict": "e.g. APPROVE, CONDITIONAL, or NOT APPROVED",
-      "conditions": "",
-      "narrative": "",
-      "metrics": {
-        "auroc": 0.0,
-        "auprc": 0.0,
-        "brier_score": 0.0,
-        "sensitivity": 0.0,
-        "specificity": 0.0,
-        "ppv": 0.0,
-        "npv": 0.0,
-        "f1": 0.0,
-        "threshold": 0.5,
-        "n_total": 0,
-        "n_positive": 0
-      },
-      "subgroup_gaps": {
-        "under_65": 0.0,
-        "65_to_74": 0.0,
-        "75_plus": 0.0
-      }
-    },
-    {
-      "name": "Your model name C",
-      "verdict": "",
-      "conditions": "",
-      "narrative": "",
-      "metrics": {
-        "auroc": 0.0,
-        "auprc": 0.0,
-        "brier_score": 0.0,
-        "sensitivity": 0.0,
-        "specificity": 0.0,
-        "ppv": 0.0,
-        "npv": 0.0,
-        "f1": 0.0,
-        "threshold": 0.5,
-        "n_total": 0,
-        "n_positive": 0
-      },
-      "subgroup_gaps": {
-        "under_65": 0.0,
-        "65_to_74": 0.0,
-        "75_plus": 0.0
+        "age_band_65_to_74": -0.0024,
+        "age_band_75_plus": 0.1194,
+        "age_band_under_65": -0.0344,
+        "sex_F": 0.0383,
+        "sex_M": -0.0301,
+        "admission_urgency_elective": -0.1142,
+        "admission_urgency_emergency": 0.2034,
+        "surgery_type_abdominal": -0.0333,
+        "surgery_type_cardiac": 0.2167,
+        "surgery_type_orthopaedic": -0.5333,
+        "surgery_type_vascular": 0.0348,
+        "has_notes_0": 0.1,
+        "has_notes_1": -0.075,
+        "sofa_quartile_q1_lowest": -0.4833,
+        "sofa_quartile_q2": -0.1295,
+        "sofa_quartile_q3": 0.1083,
+        "sofa_quartile_q4_highest": 0.2035
       }
     },
     {
@@ -154,5 +120,5 @@
       }
     }
   ],
-  "overall_notes": ""
+  "overall_notes": "Clinical AI Readiness Decision Support submission for team trusta. The evidence compares three ICU deterioration approaches: a structured no-notes ablation, a note-aware interpretable elastic-net baseline, and a data-availability MoE with dynamic vitals, notes routing, and uncertainty outputs. All three are CONDITIONAL because the evidence shows useful risk ranking but persistent orthopaedic/elective false-negative risk and the MoE t24 result is a retrospective full-information reference rather than a clean prospective deployment result."
 }

@@ -1,6 +1,7 @@
 """Feature contract for the clinical elastic-net baseline."""
 
 MODEL_NAME = "clinical_elastic_net_baseline"
+NO_NOTES_MODEL_NAME = "structured_no_notes_baseline"
 MOE_MODEL_NAME = "data_availability_moe"
 TARGET = "deteriorated_24h"
 SECONDARY_TARGET = "major_complication_30d"
@@ -8,7 +9,9 @@ SECONDARY_TARGET = "major_complication_30d"
 ID_COLUMNS = ["patient_id"]
 TEXT_COLUMNS = ["note_text"]
 NON_DEPLOYABLE_COLUMNS = ["icu_hours"]
-FORBIDDEN_MAIN_COLUMNS = set(ID_COLUMNS + [TARGET, SECONDARY_TARGET] + TEXT_COLUMNS + NON_DEPLOYABLE_COLUMNS)
+FORBIDDEN_MAIN_COLUMNS = set(
+    ID_COLUMNS + [TARGET, SECONDARY_TARGET] + TEXT_COLUMNS + NON_DEPLOYABLE_COLUMNS
+)
 
 CATEGORICAL_FEATURES = [
     "sex",
@@ -48,11 +51,16 @@ DERIVED_NUMERIC_FEATURES = [
     "note_risk_score_imputed",
     "note_risk_score_missing",
 ]
+NOTE_MODALITY_FEATURES = ["has_notes"] + DERIVED_NUMERIC_FEATURES
 
 MAIN_NUMERIC_FEATURES = RAW_NUMERIC_FEATURES + DERIVED_NUMERIC_FEATURES
 MAIN_FEATURES = CATEGORICAL_FEATURES + MAIN_NUMERIC_FEATURES
 
-REQUIRED_SOURCE_COLUMNS = CATEGORICAL_FEATURES + RAW_NUMERIC_FEATURES + ["note_risk_score", TARGET, "patient_id"]
+REQUIRED_SOURCE_COLUMNS = (
+    CATEGORICAL_FEATURES
+    + RAW_NUMERIC_FEATURES
+    + ["note_risk_score", TARGET, "patient_id"]
+)
 
 SUBGROUP_COLUMNS = [
     "age_band",

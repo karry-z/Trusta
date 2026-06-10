@@ -15,6 +15,8 @@ from clinical_baseline.constants import (
     CATEGORICAL_FEATURES,
     MAIN_NUMERIC_FEATURES,
     MODEL_NAME,
+    NOTE_MODALITY_FEATURES,
+    NO_NOTES_MODEL_NAME,
     TARGET,
 )
 from clinical_baseline.features import note_risk_median, prepare_model_frame
@@ -31,13 +33,20 @@ class ClinicalBaselineRiskModel:
     def __init__(
         self,
         include_icu_hours: bool = False,
+        include_note_features: bool = True,
         target_sensitivity: float = 0.80,
         seed: int = 42,
     ) -> None:
         self.include_icu_hours = include_icu_hours
+        self.include_note_features = include_note_features
         self.target_sensitivity = target_sensitivity
         self.seed = seed
-        self.name = MODEL_NAME if not include_icu_hours else f"{MODEL_NAME}_with_icu_hours"
+        if include_icu_hours:
+            self.name = f"{MODEL_NAME}_with_icu_hours"
+        elif include_note_features:
+            self.name = MODEL_NAME
+        else:
+            self.name = NO_NOTES_MODEL_NAME
 
     def fit(
         self,
@@ -48,17 +57,18 @@ class ClinicalBaselineRiskModel:
     ) -> "ClinicalBaselineRiskModel":
         self.note_risk_median_ = note_risk_median(train_df)
         self.numeric_features_ = list(MAIN_NUMERIC_FEATURES)
+        if not self.include_note_features:
+            self.numeric_features_ = [
+                feature
+                for feature in self.numeric_features_
+                if feature not in NOTE_MODALITY_FEATURES
+            ]
         if self.include_icu_hours:
             self.numeric_features_.append("icu_hours")
         self.source_features_ = list(CATEGORICAL_FEATURES) + self.numeric_features_
 
         x_train = prepare_model_frame(
             train_df,
-            note_median=self.note_risk_median_,
-            include_icu_hours=self.include_icu_hours,
-        )
-        x_validation = prepare_model_frame(
-            validation_df,
             note_median=self.note_risk_median_,
             include_icu_hours=self.include_icu_hours,
         )
@@ -170,7 +180,9 @@ class ClinicalBaselineRiskModel:
                 "direction": np.where(coefs >= 0, "positive", "negative"),
             }
         )
-        return out.sort_values("abs_coefficient", ascending=False).reset_index(drop=True)
+        return out.sort_values("abs_coefficient", ascending=False).reset_index(
+            drop=True
+        )
 
     def model_summary(self) -> dict:
         classifier = self.pipeline_.named_steps["classifier"]
@@ -178,6 +190,7 @@ class ClinicalBaselineRiskModel:
             "name": self.name,
             "target": TARGET,
             "include_icu_hours": self.include_icu_hours,
+            "include_note_features": self.include_note_features,
             "note_risk_score_train_median": self.note_risk_median_,
             "target_sensitivity": self.target_sensitivity,
             "selected_threshold": self.threshold_,
@@ -221,6 +234,9 @@ def choose_threshold_for_sensitivity(
         raise ValueError("Cannot choose sensitivity threshold without positive labels.")
 
     for threshold in np.sort(np.unique(y_prob))[::-1]:
-        if sensitivity_at_threshold(y_true, y_prob, float(threshold)) >= target_sensitivity:
+        if (
+            sensitivity_at_threshold(y_true, y_prob, float(threshold))
+            >= target_sensitivity
+        ):
             return float(threshold)
     return float(np.min(y_prob))

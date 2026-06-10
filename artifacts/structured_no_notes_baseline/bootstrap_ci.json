@@ -1,0 +1,20 @@
+{
+  "auroc": {
+    "point": 0.7433784893267651,
+    "ci_lower": 0.7147882178623053,
+    "ci_upper": 0.7749113916427315,
+    "n_bootstrap_valid": 1000
+  },
+  "auprc": {
+    "point": 0.6978104471469706,
+    "ci_lower": 0.6531593194841149,
+    "ci_upper": 0.7439181559431456,
+    "n_bootstrap_valid": 1000
+  },
+  "sensitivity": {
+    "point": 0.7833333333333333,
+    "ci_lower": 0.7482193156108597,
+    "ci_upper": 0.8217107359031539,
+    "n_bootstrap_valid": 1000
+  }
+}

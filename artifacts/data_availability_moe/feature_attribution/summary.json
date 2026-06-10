@@ -1,0 +1,68 @@
+{
+  "generated_on": "2026-06-10",
+  "seed": 42,
+  "method": "permutation_importance_and_counterfactual_baseline_attribution",
+  "attribution_model": {
+    "reason": "The saved LightGBM model.joblib cannot be safely unpickled in the current environment, so attribution is computed from a same-split, same-feature-pipeline MoE refit.",
+    "expert_model": "HistGradientBoostingClassifier",
+    "lambda_with": 0.0,
+    "lambda_no": 0.0,
+    "threshold": 0.4870276442430246,
+    "metrics": {
+      "auroc": 0.8675697865353038,
+      "auprc": 0.829390540212302,
+      "brier_score": 0.14491712261587547,
+      "threshold": 0.4870276442430246,
+      "sensitivity": 0.7547619047619047,
+      "specificity": 0.8224137931034483,
+      "ppv": 0.7547619047619047,
+      "npv": 0.8224137931034483,
+      "tp": 317,
+      "fp": 103,
+      "tn": 477,
+      "fn": 103,
+      "n_total": 1000,
+      "n_positive": 420
+    }
+  },
+  "original_artifact_reference": {
+    "threshold": 0.49626415393692785,
+    "auroc": 0.8593719211822659,
+    "auprc": 0.8130007373875059,
+    "brier_score": 0.15077212572351947,
+    "sensitivity": 0.7047619047619048,
+    "lambda_with": 0.0,
+    "lambda_no": 0.0
+  },
+  "top_global_feature": {
+    "feature": "lactate_slope",
+    "feature_label": "Lactate slope",
+    "model_component": "final_t24_risk",
+    "auroc_drop_mean": 0.10176190476190479,
+    "auroc_drop_std": 0.009887331511556786,
+    "brier_increase_mean": 0.04641205498820666,
+    "brier_increase_std": 0.003861136416374526,
+    "importance_score": 0.14817395975011144
+  },
+  "top_local_feature": {
+    "case_label": "high_risk_false_positive",
+    "patient_id": "P1836",
+    "y_true": 0,
+    "original_risk": 0.9218044026774787,
+    "feature": "rr_mean",
+    "feature_label": "Respiratory rate mean",
+    "observed_value": 18.57083333333333,
+    "baseline_value": 14.483333333333334,
+    "counterfactual_risk": 0.8952007757037262,
+    "risk_contribution_vs_baseline": 0.026603626973752403,
+    "abs_contribution": 0.026603626973752403
+  },
+  "partial_effect_features": [
+    "lactate_slope",
+    "spo2_min",
+    "sofa_score",
+    "rr_std",
+    "lactate_rolling_mean",
+    "icu_lactate"
+  ]
+}

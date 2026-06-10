@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data-Availability MoE Feature Attribution</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }
+    main { max-width: 980px; margin: 0 auto; padding: 40px 20px 72px; }
+    header, section { margin-bottom: 34px; }
+    h1, h2, h3 { line-height: 1.18; margin: 0 0 12px; letter-spacing: 0; }
+    h1 { font-size: 32px; }
+    h2 { font-size: 22px; border-top: 1px solid #dbe3ef; padding-top: 24px; }
+    h3 { font-size: 17px; margin-top: 22px; }
+    p, li { line-height: 1.68; font-size: 15px; }
+    ul, ol { padding-left: 22px; }
+    .summary { background: #ffffff; border: 1px solid #dbe3ef; border-radius: 8px; padding: 18px 20px; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+    .metric { background: #ffffff; border: 1px solid #dbe3ef; border-radius: 8px; padding: 14px; }
+    .metric strong { display: block; font-size: 24px; line-height: 1.1; color: #2E4780; }
+    .metric span { color: #475569; font-size: 13px; }
+    figure { margin: 20px 0 26px; background: #ffffff; border: 1px solid #dbe3ef; border-radius: 8px; padding: 14px; }
+    figure img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+    figcaption { color: #475569; font-size: 13px; margin-top: 8px; line-height: 1.5; }
+    table { border-collapse: collapse; width: 100%; background: #ffffff; border: 1px solid #dbe3ef; margin: 16px 0 20px; }
+    th, td { border-bottom: 1px solid #dbe3ef; padding: 9px 10px; text-align: left; font-size: 14px; }
+    th { background: #edf2f7; }
+    code, pre { background: #edf2f7; border-radius: 4px; }
+    code { padding: 2px 5px; }
+    pre { padding: 14px; overflow-x: auto; }
+    .caveat { color: #475569; }
+    @media (max-width: 760px) {
+      main { padding: 26px 14px 56px; }
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <main data-report-audience="technical">
+    <header data-contract-section="title">
+      <h1>Data-Availability MoE Feature Attribution</h1>
+      <p class="caveat">生成日期：2026-06-10。目标：解释 t24 MoE 风险预测到底被哪些指标推动，以及指标变动方向如何改变预测风险。</p>
+    </header>
+
+    <section data-contract-section="technical-summary">
+      <h2>技术结论</h2>
+      <div class="summary">
+        <ul>
+          <li><strong>可以做 feature attribution。</strong>本报告实现了 global permutation attribution、partial-effect direction 和 local counterfactual attribution。</li>
+          <li><strong>当前最终风险优先解释 E0。</strong>原始 artifacts 的 validation 权重是 <code>lambda_with=0.000</code>、<code>lambda_no=0.000</code>；当前 attribution refit 得到 <code>lambda_with=0.0</code>、<code>lambda_no=0.0</code>。因此 E1/E2 更适合作为 route-specific diagnostics，而不是声称它们主导最终风险。</li>
+          <li><strong>当前 attribution refit 的 t24 表现：</strong>AUROC=0.868，AUPRC=0.829，Brier=0.145，threshold=0.4870。</li>
+          <li><strong>最大 global attribution 特征：</strong>Lactate slope，permutation 后 AUROC 平均下降 0.102，Brier 平均增加 0.046。</li>
+        </ul>
+      </div>
+      <div class="metric-grid">
+        <div class="metric"><strong>0.868</strong><span>Attribution refit AUROC</span></div>
+        <div class="metric"><strong>0.859</strong><span>Original artifact AUROC</span></div>
+        <div class="metric"><strong>HistGradientBoostingClassifier</strong><span>Attribution model expert</span></div>
+        <div class="metric"><strong>0.4870</strong><span>Attribution threshold</span></div>
+      </div>
+    </section>
+
+    <section data-contract-section="key-findings">
+      <h2>Feature Attribution 结果</h2>
+
+      <h3>Global attribution：打乱重要特征会明显损害风险排序</h3>
+      <p>Permutation importance 的读法是：只打乱一个特征，其他特征保持不变，然后观察 AUROC/Brier 变差多少。它回答的是“模型全局上依赖哪些指标做 t24 风险排序”。这里最重要的特征是 <strong>Lactate slope</strong>。</p>
+      <figure>
+        <img src="charts/global_final_risk_permutation_importance.png" alt="Global final-risk permutation importance">
+        <figcaption>图 1：final t24 risk 的 global permutation attribution。越靠上说明该指标被打乱后模型越难排序。</figcaption>
+      </figure>
+
+      <h3>Feature direction：指标值变化会改变平均预测风险</h3>
+      <p>Partial-effect 曲线把一个指标设置到不同分位点，同时保持其他 t24 特征不变。曲线向上表示该指标升高会把平均预测风险推高；曲线向下表示该指标升高会压低平均预测风险。这个图比单纯排序更接近你说的“根据指标变化然后预测”。</p>
+      <figure>
+        <img src="charts/partial_effect_top_features.png" alt="Partial effects for top attribution features">
+        <figcaption>图 2：top attribution features 的 counterfactual partial effect。注意这是平均效应，不代表每个个体都单调。</figcaption>
+      </figure>
+
+      <h3>Local attribution：单个病人的风险由哪些指标推高或压低</h3>
+      <p>Local counterfactual attribution 的读法是：对一个病人，把某个指标替换成 train-set baseline，再看风险下降或上升多少。正值表示该病人的实际指标值相对 baseline 把风险推高；负值表示压低风险。示例病例 <strong>P1836</strong> 的最大局部贡献来自 <strong>Respiratory rate mean</strong>，贡献 +2.7%。</p>
+      <figure>
+        <img src="charts/local_counterfactual_case.png" alt="Local counterfactual attribution case">
+        <figcaption>图 3：一个病例的 local counterfactual attribution。支持表里还有其他示例病例。</figcaption>
+      </figure>
+
+      <h3>Route-specific attribution：E1/E2 可解释专家差异，但不是最终风险主权重</h3>
+      <p>因为最终融合权重为 0，E1/E2 的 attribution 不能直接解释 final risk；但它们仍能解释 route-specific expert 为什么和 E0 意见不同。这个信息适合用于 high-disagreement review、notes ablation 和 MNAR 分析。</p>
+      <figure>
+        <img src="charts/route_expert_permutation_importance.png" alt="Route-specific expert permutation importance">
+        <figcaption>图 4：E1 with-notes expert 和 E2 no-notes expert 的 standalone permutation attribution。</figcaption>
+      </figure>
+    </section>
+
+    <section data-contract-section="scope-data-and-metric-definitions">
+      <h2>范围、数据和定义</h2>
+      <p>分析使用 <code>data/raw/icu_patients.csv</code>，按原脚本的 stratified 60/20/20 split 和 seed=42 重建 train/validation/test。归因对象是 t24 calibrated risk，不是完整跨阶段 <code>belief_risk</code>。原因是 feature attribution 要解释“某个 t24 指标改变如何影响当前风险输出”；belief update 还混入 t0/t6/t12 历史状态和 uncertainty smoothing。</p>
+      <table>
+        <thead><tr><th>Attribution output</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>Permutation importance</td><td>全局重要性：打乱该指标后 AUROC 下降和 Brier 上升。</td></tr>
+          <tr><td>Partial effect</td><td>方向性：把该指标设为不同分位点时，平均预测风险如何变化。</td></tr>
+          <tr><td>Local counterfactual</td><td>单病人解释：把该病人的指标替换为 baseline 后，风险变化多少。</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section data-contract-section="methodology">
+      <h2>方法</h2>
+      <p>最终风险的 feature attribution 使用下面的定义：</p>
+      <pre>global_importance(feature) =
+  baseline_AUROC - AUROC(model(x with feature permuted))
+
+local_contribution(patient, feature) =
+  risk(patient observed features) - risk(patient with feature set to train baseline)</pre>
+      <p>这个方法不是 SHAP，但属于清晰可复现的 feature attribution。它直接回答“模型是否依赖这个指标”和“该指标相对 baseline 把某个病人的风险推高还是压低”。如果需要严格 SHAP，需要恢复原 LightGBM joblib 的运行环境或重新保存一个当前环境可加载的 LightGBM/TreeExplainer 版本。</p>
+    </section>
+
+    <section data-contract-section="limitations-uncertainty-and-robustness-checks">
+      <h2>限制和 caveat</h2>
+      <ul>
+        <li><strong>不是旧 joblib 的严格树归因：</strong>The saved LightGBM model.joblib cannot be safely unpickled in the current environment, so attribution is computed from a same-split, same-feature-pipeline MoE refit.</li>
+        <li><strong>final risk 与 route expert 分开解释：</strong>final risk 当前主要解释 E0；E1/E2 attribution 只能作为 route-specific diagnostics。</li>
+        <li><strong>Permutation 是相关性敏感的：</strong>如果两个指标高度相关，打乱其中一个可能低估或高估真实依赖。</li>
+        <li><strong>Counterfactual baseline 不是临床干预：</strong>把 lactate 设为 median 只是解释模型，不表示真实治疗能产生同样风险变化。</li>
+      </ul>
+    </section>
+
+    <section data-contract-section="recommended-next-steps">
+      <h2>建议下一步</h2>
+      <ol>
+        <li>答辩时用图 1 说明“模型主要看哪些指标”，用图 2 说明“指标变动方向”，用图 3 说明“单个病人怎么解释”。</li>
+        <li>如果要提交更强版本，恢复原 LightGBM 环境后补 SHAP beeswarm 和 3 个 patient-level waterfall。</li>
+        <li>把 local counterfactual 表接到 demo UI：输入 patient_id，显示 top positive/negative contributors。</li>
+      </ol>
+    </section>
+
+    <section data-contract-section="further-questions">
+      <h2>仍需回答的问题</h2>
+      <ul>
+        <li>临床评委是否要求严格 SHAP，还是 permutation/counterfactual attribution 已足够？</li>
+        <li>是否要把 attribution 从 t24 扩展到 t0/t6/t12，解释早期预警阶段？</li>
+        <li>是否要为 false negatives 单独输出 attribution，用于 failure catalogue？</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

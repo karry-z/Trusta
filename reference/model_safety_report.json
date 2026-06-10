@@ -5,199 +5,100 @@
   "hackathon": "MultimodalAI26",
   "evaluation_date": "2026-06-10",
   "team": {
-    "name": "",
-    "members": ""
+    "name": "trusta",
+    "members": "kairui zhang, ziwen yu, ting zhou, bolin chen"
   },
   "models": [
     {
-      "name": "model_a",
-      "label": "Your model name A",
-      "verdict": "",
-      "conditions": "",
-      "narrative": "",
+      "name": "structured_no_notes_baseline",
+      "label": "Structured no-notes modality ablation",
+      "verdict": "CONDITIONAL",
+      "conditions": "Conditional comparator only: use to quantify performance when clinical notes are unavailable, not as a preferred standalone deployment model. Any deployment must audit orthopaedic, low-SOFA, and elective-admission sensitivity.",
+      "narrative": "Structured no-notes modality ablation trained the same calibrated elastic-net logistic architecture as the clinical baseline but excluded has_notes, note_risk_score_imputed, and note_risk_score_missing. On held-out test data, AUROC was 0.743, AUPRC 0.698, sensitivity 0.783, and Brier score 0.198. The result supports modality comparison against note-aware and MoE models rather than replacing them.",
       "metrics": {
-        "auroc": 0.0,
-        "auprc": 0.0,
-        "brier_score": 0.0,
-        "sensitivity": 0.0,
-        "specificity": 0.0,
-        "ppv": 0.0,
-        "npv": 0.0,
-        "f1": 0.0,
-        "threshold": 0.5,
-        "n_total": 0,
-        "n_positive": 0
+        "auroc": 0.7434,
+        "auprc": 0.6978,
+        "brier_score": 0.1984,
+        "sensitivity": 0.7833,
+        "specificity": 0.5155,
+        "ppv": 0.5393,
+        "npv": 0.7667,
+        "f1": 0.6388,
+        "threshold": 0.305,
+        "n_total": 1000,
+        "n_positive": 420
       },
       "subgroup_gaps": {
-        "age_under_65": 0.0,
-        "age_65_to_74": 0.0,
-        "age_75_plus": 0.0
+        "age_band_65_to_74": -0.0024,
+        "age_band_75_plus": 0.1194,
+        "age_band_under_65": -0.0344,
+        "sex_F": 0.0383,
+        "sex_M": -0.0301,
+        "admission_urgency_elective": -0.1142,
+        "admission_urgency_emergency": 0.2034,
+        "surgery_type_abdominal": -0.0333,
+        "surgery_type_cardiac": 0.2167,
+        "surgery_type_orthopaedic": -0.5333,
+        "surgery_type_vascular": 0.0348,
+        "has_notes_0": 0.1,
+        "has_notes_1": -0.075,
+        "sofa_quartile_q1_lowest": -0.4833,
+        "sofa_quartile_q2": -0.1295,
+        "sofa_quartile_q3": 0.1083,
+        "sofa_quartile_q4_highest": 0.2035
       },
       "deployment_questions": {
-        "q1_miss_rate": "",
-        "q2_alert_precision": "",
-        "q3_clearance_safety": "",
-        "q4_discrimination": "",
-        "q5_calibration": ""
+        "q1_miss_rate": "At threshold 0.3050, the no-notes model missed 91 of 420 deteriorations on the held-out test set.",
+        "q2_alert_precision": "Alert precision (PPV) was 0.539; 610 test patients were flagged.",
+        "q3_clearance_safety": "NPV was 0.767. A low no-notes risk score should not clear a patient without standard bedside monitoring because the notes modality was intentionally unavailable.",
+        "q4_discrimination": "AUROC was 0.743 and AUPRC was 0.698. Largest observed subgroup sensitivity gap was -0.533 in surgery_type=orthopaedic.",
+        "q5_calibration": "Calibrated Brier score was 0.198. Probabilities are calibrated on the validation split and should be rechecked prospectively if notes are absent in a new ward workflow."
       },
       "failure_analysis": {
-        "who_is_missed": "",
-        "false_alarm_profile": "",
-        "feature_importance_interpretation": "",
-        "model_disagreement": ""
+        "who_is_missed": "Misses concentrate most in surgery_type=orthopaedic (sensitivity 0.250, n=250, positives=60).",
+        "false_alarm_profile": "The threshold produced 281 false positives and specificity 0.516; alert burden is similar to the note-aware structured baseline but without note context.",
+        "feature_importance_interpretation": "Top positive coefficients without notes: admission_urgency_emergency (1.042), surgery_type_cardiac (0.748), sofa_score (0.302), age (0.119), icu_creatinine (0.116). Top negative coefficients: surgery_type_orthopaedic (-0.258), surgery_type_vascular (-0.128), sex_M (-0.089), spo2_mean (-0.083), sbp_mean (-0.062).",
+        "model_disagreement": "This model is the planned notes-modality ablation: compare it with clinical_elastic_net_baseline and data_availability_moe to isolate the incremental evidence carried by note-risk and NLP features."
       },
       "option_specific": {
-        "type": "",
-        "title": "",
-        "content": ""
-      },
-      "explainability": {
-        "output_type": "",
-        "description": ""
-      },
-      "failure_catalogue": [
-        {
-          "mode": "",
-          "example": "",
-          "subgroup": ""
-        },
-        {
-          "mode": "",
-          "example": "",
-          "subgroup": ""
-        },
-        {
-          "mode": "",
-          "example": "",
-          "subgroup": ""
+        "type": "scoring_rubric",
+        "title": "Clinical AI readiness decision support rubric",
+        "content": {
+          "per_model": [
+            {
+              "model": "structured_no_notes_baseline",
+              "thresholds_applied": "Calibrated threshold 0.3050 selected on validation as the highest threshold meeting target sensitivity >= 0.80 while excluding notes features.",
+              "weights": {
+                "clinical_safety": 0.4,
+                "subgroup_equity": 0.25,
+                "calibration_and_thresholding": 0.2,
+                "operational_deployability": 0.15
+              },
+              "evidence_summary": "CONDITIONAL comparator. Test AUROC 0.7434, sensitivity 0.7833, specificity 0.5155, PPV 0.5393, NPV 0.7667. Useful as a no-notes ablation, but not preferred for deployment because it misses 91/420 deteriorations and has severe orthopaedic and low-SOFA sensitivity gaps."
+            }
+          ],
+          "readiness_decision": "Conditional comparator only; use to quantify notes-modality value and require subgroup audit before any operational use."
         }
-      ]
-    },
-    {
-      "name": "model_b",
-      "label": "Your model name B",
-      "verdict": "",
-      "conditions": "",
-      "narrative": "",
-      "metrics": {
-        "auroc": 0.0,
-        "auprc": 0.0,
-        "brier_score": 0.0,
-        "sensitivity": 0.0,
-        "specificity": 0.0,
-        "ppv": 0.0,
-        "npv": 0.0,
-        "f1": 0.0,
-        "threshold": 0.5,
-        "n_total": 0,
-        "n_positive": 0
-      },
-      "subgroup_gaps": {
-        "age_under_65": 0.0,
-        "age_65_to_74": 0.0,
-        "age_75_plus": 0.0
-      },
-      "deployment_questions": {
-        "q1_miss_rate": "",
-        "q2_alert_precision": "",
-        "q3_clearance_safety": "",
-        "q4_discrimination": "",
-        "q5_calibration": ""
-      },
-      "failure_analysis": {
-        "who_is_missed": "",
-        "false_alarm_profile": "",
-        "feature_importance_interpretation": "",
-        "model_disagreement": ""
-      },
-      "option_specific": {
-        "type": "",
-        "title": "",
-        "content": ""
       },
       "explainability": {
-        "output_type": "",
-        "description": ""
+        "output_type": "standardized_log_odds_coefficients",
+        "description": "Linear coefficients from an elastic-net logistic model that excludes has_notes, note_risk_score_imputed, and note_risk_score_missing. The remaining structured, laboratory, and vital-sign features are median-imputed and standardized."
       },
       "failure_catalogue": [
         {
-          "mode": "",
-          "example": "",
-          "subgroup": ""
+          "mode": "Orthopaedic sensitivity gap",
+          "example": "surgery_type=orthopaedic: sensitivity 0.250, gap vs overall -0.533, n=250, positives=60.",
+          "subgroup": "surgery_type=orthopaedic"
         },
         {
-          "mode": "",
-          "example": "",
-          "subgroup": ""
+          "mode": "Low SOFA deterioration misses",
+          "example": "sofa_quartile=q1_lowest: sensitivity 0.300, gap vs overall -0.483, n=250, positives=70.",
+          "subgroup": "sofa_quartile=q1_lowest"
         },
         {
-          "mode": "",
-          "example": "",
-          "subgroup": ""
-        }
-      ]
-    },
-    {
-      "name": "model_c",
-      "label": "Your model name C",
-      "verdict": "",
-      "conditions": "",
-      "narrative": "",
-      "metrics": {
-        "auroc": 0.0,
-        "auprc": 0.0,
-        "brier_score": 0.0,
-        "sensitivity": 0.0,
-        "specificity": 0.0,
-        "ppv": 0.0,
-        "npv": 0.0,
-        "f1": 0.0,
-        "threshold": 0.5,
-        "n_total": 0,
-        "n_positive": 0
-      },
-      "subgroup_gaps": {
-        "age_under_65": 0.0,
-        "age_65_to_74": 0.0,
-        "age_75_plus": 0.0
-      },
-      "deployment_questions": {
-        "q1_miss_rate": "",
-        "q2_alert_precision": "",
-        "q3_clearance_safety": "",
-        "q4_discrimination": "",
-        "q5_calibration": ""
-      },
-      "failure_analysis": {
-        "who_is_missed": "",
-        "false_alarm_profile": "",
-        "feature_importance_interpretation": "",
-        "model_disagreement": ""
-      },
-      "option_specific": {
-        "type": "",
-        "title": "",
-        "content": ""
-      },
-      "explainability": {
-        "output_type": "",
-        "description": ""
-      },
-      "failure_catalogue": [
-        {
-          "mode": "",
-          "example": "",
-          "subgroup": ""
-        },
-        {
-          "mode": "",
-          "example": "",
-          "subgroup": ""
-        },
-        {
-          "mode": "",
-          "example": "",
-          "subgroup": ""
+          "mode": "Elective admission under-detection",
+          "example": "admission_urgency=elective: sensitivity 0.669, gap vs overall -0.114, n=766, positives=269.",
+          "subgroup": "admission_urgency=elective"
         }
       ]
     },
@@ -250,122 +151,26 @@
         "who_is_missed": "Misses concentrate most in surgery_type=orthopaedic (sensitivity 0.267, n=250, positives=60).",
         "false_alarm_profile": "The selected threshold produced 284 false positives and specificity 0.510; alert burden should be reviewed before operational use.",
         "feature_importance_interpretation": "Top positive coefficients: admission_urgency_emergency (1.041), surgery_type_cardiac (0.751), sofa_score (0.299), age (0.117), icu_creatinine (0.111). Top negative coefficients: surgery_type_orthopaedic (-0.232), spo2_mean (-0.079), sex_M (-0.076), surgery_type_vascular (-0.073), sbp_mean (-0.060).",
-        "model_disagreement": "No second deployable model is used for disagreement analysis. The icu_hours sensitivity check is marked non-deployable; AUROC delta +0.000."
+        "model_disagreement": "Use structured_no_notes_baseline as the notes-modality ablation and data_availability_moe as the dynamic multimodal comparator. The icu_hours sensitivity check remains non-deployable; AUROC delta +0.000."
       },
       "option_specific": {
-        "type": "threshold_sensitivity_report",
-        "title": "Clinical threshold sensitivity sweep",
+        "type": "scoring_rubric",
+        "title": "Clinical AI readiness decision support rubric",
         "content": {
-          "thresholds_tested": [
-            0.2,
-            0.25,
-            0.3,
-            0.35,
-            0.4,
-            0.45,
-            0.5,
-            0.55,
-            0.6,
-            0.65,
-            0.7,
-            0.75,
-            0.8
-          ],
-          "signal_at_each_threshold": [
+          "per_model": [
             {
-              "threshold": 0.2,
-              "sensitivity": 0.9428571428571428,
-              "specificity": 0.17586206896551723,
-              "ppv": 0.45308924485125857,
-              "n_alerts": 874
-            },
-            {
-              "threshold": 0.25,
-              "sensitivity": 0.8714285714285714,
-              "specificity": 0.3741379310344828,
-              "ppv": 0.5020576131687243,
-              "n_alerts": 729
-            },
-            {
-              "threshold": 0.3,
-              "sensitivity": 0.7928571428571428,
-              "specificity": 0.506896551724138,
-              "ppv": 0.5379644588045234,
-              "n_alerts": 619
-            },
-            {
-              "threshold": 0.35,
-              "sensitivity": 0.7095238095238096,
-              "specificity": 0.656896551724138,
-              "ppv": 0.5995975855130785,
-              "n_alerts": 497
-            },
-            {
-              "threshold": 0.4,
-              "sensitivity": 0.638095238095238,
-              "specificity": 0.7551724137931034,
-              "ppv": 0.6536585365853659,
-              "n_alerts": 410
-            },
-            {
-              "threshold": 0.45,
-              "sensitivity": 0.580952380952381,
-              "specificity": 0.8,
-              "ppv": 0.6777777777777778,
-              "n_alerts": 360
-            },
-            {
-              "threshold": 0.5,
-              "sensitivity": 0.5166666666666667,
-              "specificity": 0.8482758620689655,
-              "ppv": 0.7114754098360656,
-              "n_alerts": 305
-            },
-            {
-              "threshold": 0.55,
-              "sensitivity": 0.46904761904761905,
-              "specificity": 0.8758620689655172,
-              "ppv": 0.7323420074349443,
-              "n_alerts": 269
-            },
-            {
-              "threshold": 0.6,
-              "sensitivity": 0.38571428571428573,
-              "specificity": 0.896551724137931,
-              "ppv": 0.7297297297297297,
-              "n_alerts": 222
-            },
-            {
-              "threshold": 0.65,
-              "sensitivity": 0.319047619047619,
-              "specificity": 0.9241379310344827,
-              "ppv": 0.7528089887640449,
-              "n_alerts": 178
-            },
-            {
-              "threshold": 0.7,
-              "sensitivity": 0.26666666666666666,
-              "specificity": 0.9448275862068966,
-              "ppv": 0.7777777777777778,
-              "n_alerts": 144
-            },
-            {
-              "threshold": 0.75,
-              "sensitivity": 0.21428571428571427,
-              "specificity": 0.9689655172413794,
-              "ppv": 0.8333333333333334,
-              "n_alerts": 108
-            },
-            {
-              "threshold": 0.8,
-              "sensitivity": 0.1619047619047619,
-              "specificity": 0.9879310344827587,
-              "ppv": 0.9066666666666666,
-              "n_alerts": 75
+              "model": "clinical_elastic_net_baseline",
+              "thresholds_applied": "Calibrated threshold 0.3011 selected on validation as the highest threshold meeting target sensitivity >= 0.80.",
+              "weights": {
+                "clinical_safety": 0.4,
+                "subgroup_equity": 0.25,
+                "calibration_and_thresholding": 0.2,
+                "operational_deployability": 0.15
+              },
+              "evidence_summary": "CONDITIONAL baseline. Test AUROC 0.7430, sensitivity 0.7905, specificity 0.5103, PPV 0.5390, NPV 0.7708. The model is interpretable and close to the sensitivity target, but it creates 284 false positives and under-detects orthopaedic and low-SOFA patients."
             }
           ],
-          "recommended_threshold": 0.3010517065624867,
-          "rationale": "Recommended threshold is the highest validation-set calibrated risk threshold that achieved target sensitivity >= 0.80."
+          "readiness_decision": "Conditional explainable baseline; suitable for governance comparison, not standalone clinical automation."
         }
       },
       "explainability": {
@@ -434,23 +239,39 @@
       "failure_analysis": {
         "who_is_missed": "Most adverse primary subgroup gap: surgery_type=orthopaedic with sensitivity 0.250, n=250, positives=60.",
         "false_alarm_profile": "At t24 the model produced 89 false positives and specificity 0.847.",
-        "feature_importance_interpretation": "Interpretation is route based: E0 is the structured fallback, E1 adds note_risk_score plus auxiliary NLP indicators when notes exist, and E2 corrects the no-notes MNAR subgroup if validation supports it.",
+        "feature_importance_interpretation": "Route-level interpretation remains primary: E0 is the structured fallback, E1 adds note risk and auxiliary NLP indicators when notes exist, and E2 handles the no-notes MNAR route. Feature attribution adds a ranked evidence view: top final-risk drivers are Lactate slope, SpO2 minimum, Admission urgency, SOFA score, Respiratory rate variability. Within the with-notes expert, top drivers are Lactate slope, Note text risk score, SpO2 minimum; within the no-notes expert, top drivers are Lactate slope, SpO2 minimum, Respiratory rate variability. The local counterfactual example is patient P1836 (high_risk_false_positive), where Respiratory rate mean contributes 0.027 risk versus baseline.",
         "model_disagreement": "no_notes: AUROC 0.858, Brier 0.156, sensitivity 0.800, n=336; with_notes: AUROC 0.851, Brier 0.148, sensitivity 0.633, n=664"
       },
       "option_specific": {
-        "type": "threshold_sensitivity_report",
-        "title": "Dynamic MoE threshold and uncertainty review",
+        "type": "scoring_rubric",
+        "title": "Clinical AI readiness decision support rubric",
         "content": {
-          "recommended_threshold": 0.49626415393692785,
-          "lambda_with": 0.0,
-          "lambda_no": 0.0,
-          "uncertainty_summary": "ALERT: n=102, event_rate 0.863, error_rate 0.137; ALERT + SENIOR REVIEW: n=309, event_rate 0.731, error_rate 0.307; MANUAL REVIEW / RECHECK DATA: n=250, event_rate 0.296, error_rate 0.288; ROUTINE MONITORING: n=339, event_rate 0.094, error_rate 0.094",
-          "rationale": "Threshold was selected on validation t24 calibrated MoE risk to achieve target sensitivity >= 0.80. High-uncertainty cases are routed to senior/manual review."
+          "per_model": [
+            {
+              "model": "data_availability_moe",
+              "thresholds_applied": "Calibrated t24 MoE threshold 0.4963 with route-specific Platt calibration, dynamic belief update, and high-uncertainty senior/manual review routing.",
+              "weights": {
+                "clinical_safety": 0.4,
+                "subgroup_equity": 0.25,
+                "calibration_and_thresholding": 0.2,
+                "operational_deployability": 0.15
+              },
+              "evidence_summary": "CONDITIONAL retrospective prototype. Test t24 AUROC 0.8594, sensitivity 0.7048, specificity 0.8466, PPV 0.7688, NPV 0.7984. Stronger discrimination and lower false-alarm burden than baselines, but it misses 124/420 deteriorations and t24 is not a clean prospective prediction setting."
+            }
+          ],
+          "readiness_decision": "Conditional retrospective decision-support prototype; require prospective validation and subgroup monitoring before deployment."
         }
       },
       "explainability": {
-        "output_type": "route_experts_plus_uncertainty_components",
-        "description": "The model reports route, E0/E1/E2 predictions, expert disagreement, bootstrap risk interval, data uncertainty, entropy, belief updates, and recommended action."
+        "output_type": "route_experts_uncertainty_plus_feature_attribution",
+        "description": "The MoE reports route, E0/E1/E2 predictions, expert disagreement, bootstrap risk interval, data uncertainty, entropy, belief updates, and recommended action. Additional feature attribution evidence is stored under artifacts/data_availability_moe/feature_attribution/: global final-risk permutation importance, route-expert permutation importance, partial effects, and a local counterfactual case. The top final-risk feature is Lactate slope (mean AUROC drop 0.102; mean Brier increase 0.046). The attribution refit used the same split and feature pipeline with HistGradientBoostingClassifier because the saved LightGBM artifact could not be safely unpickled in this environment; its AUROC 0.868 is close to the original MoE reference AUROC 0.859.",
+        "artifact_paths": {
+          "html_report": "artifacts/data_availability_moe/feature_attribution/report.html",
+          "summary": "artifacts/data_availability_moe/feature_attribution/summary.json",
+          "global_importance_table": "artifacts/data_availability_moe/feature_attribution/tables/final_risk_permutation_importance.csv",
+          "route_importance_table": "artifacts/data_availability_moe/feature_attribution/tables/with_notes_expert_permutation_importance.csv",
+          "local_counterfactual_table": "artifacts/data_availability_moe/feature_attribution/tables/local_counterfactual_attributions.csv"
+        }
       },
       "failure_catalogue": [
         {
@@ -471,5 +292,5 @@
       ]
     }
   ],
-  "overall_notes": ""
+  "overall_notes": "Clinical AI Readiness Decision Support submission for team trusta. The evidence compares three ICU deterioration approaches: a structured no-notes ablation, a note-aware interpretable elastic-net baseline, and a data-availability MoE with dynamic vitals, notes routing, and uncertainty outputs. All three are CONDITIONAL because the evidence shows useful risk ranking but persistent orthopaedic/elective false-negative risk and the MoE t24 result is a retrospective full-information reference rather than a clean prospective deployment result."
 }

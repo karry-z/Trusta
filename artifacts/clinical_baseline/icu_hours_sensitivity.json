@@ -4,6 +4,7 @@
     "name": "clinical_elastic_net_baseline_with_icu_hours",
     "target": "deteriorated_24h",
     "include_icu_hours": true,
+    "include_note_features": true,
     "note_risk_score_train_median": 0.2683516131,
     "target_sensitivity": 0.8,
     "selected_threshold": 0.2916128551942085,
