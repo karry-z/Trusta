@@ -1,0 +1,134 @@
+{
+  "threshold": 0.49626415393692785,
+  "lambda_with": 0.0,
+  "lambda_no": 0.0,
+  "lambda_selection": {
+    "with_notes": {
+      "value": 0.0,
+      "brier": 0.16493125249521803,
+      "sensitivity_at_050": 0.5520833333333334,
+      "met_sensitivity_constraint": false,
+      "candidates": [
+        {
+          "lambda": 0.0,
+          "brier": 0.16493125249521803,
+          "sensitivity_at_050": 0.5520833333333334
+        },
+        {
+          "lambda": 0.1,
+          "brier": 0.165362064372547,
+          "sensitivity_at_050": 0.5445075757575758
+        },
+        {
+          "lambda": 0.2,
+          "brier": 0.1659775200285211,
+          "sensitivity_at_050": 0.5445075757575758
+        },
+        {
+          "lambda": 0.3,
+          "brier": 0.16677761946314046,
+          "sensitivity_at_050": 0.5435606060606061
+        },
+        {
+          "lambda": 0.4,
+          "brier": 0.16776236267640499,
+          "sensitivity_at_050": 0.5397727272727273
+        },
+        {
+          "lambda": 0.5,
+          "brier": 0.16893174966831473,
+          "sensitivity_at_050": 0.5350378787878788
+        },
+        {
+          "lambda": 0.6,
+          "brier": 0.17028578043886966,
+          "sensitivity_at_050": 0.5321969696969697
+        },
+        {
+          "lambda": 0.7,
+          "brier": 0.17182445498806978,
+          "sensitivity_at_050": 0.5331439393939394
+        },
+        {
+          "lambda": 0.8,
+          "brier": 0.17354777331591512,
+          "sensitivity_at_050": 0.5284090909090909
+        },
+        {
+          "lambda": 0.9,
+          "brier": 0.17545573542240564,
+          "sensitivity_at_050": 0.5255681818181818
+        },
+        {
+          "lambda": 1.0,
+          "brier": 0.1775483413075414,
+          "sensitivity_at_050": 0.5246212121212122
+        }
+      ]
+    },
+    "no_notes": {
+      "value": 0.0,
+      "brier": 0.16085514406229373,
+      "sensitivity_at_050": 0.8221153846153846,
+      "met_sensitivity_constraint": true,
+      "candidates": [
+        {
+          "lambda": 0.0,
+          "brier": 0.16085514406229373,
+          "sensitivity_at_050": 0.8221153846153846
+        },
+        {
+          "lambda": 0.1,
+          "brier": 0.16142502638134607,
+          "sensitivity_at_050": 0.8189102564102564
+        },
+        {
+          "lambda": 0.2,
+          "brier": 0.16228726420982045,
+          "sensitivity_at_050": 0.8125
+        },
+        {
+          "lambda": 0.3,
+          "brier": 0.16344185754771684,
+          "sensitivity_at_050": 0.8060897435897436
+        },
+        {
+          "lambda": 0.4,
+          "brier": 0.16488880639503525,
+          "sensitivity_at_050": 0.8060897435897436
+        },
+        {
+          "lambda": 0.5,
+          "brier": 0.1666281107517757,
+          "sensitivity_at_050": 0.8028846153846154
+        },
+        {
+          "lambda": 0.6,
+          "brier": 0.16865977061793816,
+          "sensitivity_at_050": 0.8028846153846154
+        },
+        {
+          "lambda": 0.7,
+          "brier": 0.17098378599352265,
+          "sensitivity_at_050": 0.8028846153846154
+        },
+        {
+          "lambda": 0.8,
+          "brier": 0.17360015687852914,
+          "sensitivity_at_050": 0.8044871794871795
+        },
+        {
+          "lambda": 0.9,
+          "brier": 0.1765088832729577,
+          "sensitivity_at_050": 0.7996794871794872
+        },
+        {
+          "lambda": 1.0,
+          "brier": 0.17970996517680823,
+          "sensitivity_at_050": 0.7932692307692307
+        }
+      ]
+    }
+  },
+  "bootstrap_models": 20
+}

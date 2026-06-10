@@ -3,7 +3,7 @@
   "submission_type": "model_safety_report",
   "strand": "clinical",
   "hackathon": "MultimodalAI26",
-  "submitted": "",
+  "submitted": "2026-06-10",
   "team": {
     "name": "",
     "members": ""
@@ -79,6 +79,78 @@
         "under_65": 0.0,
         "65_to_74": 0.0,
         "75_plus": 0.0
+      }
+    },
+    {
+      "name": "clinical_elastic_net_baseline",
+      "verdict": "CONDITIONAL",
+      "conditions": "Conditional baseline only: use as the minimum explainable comparator, not as standalone clinical automation. Keep icu_hours excluded from deployable use, validate calibration prospectively, and audit subgroup sensitivity before any escalation workflow.",
+      "narrative": "Clinical elastic-net logistic regression trained on structured, interpretable features for deteriorated_24h. On held-out test data, calibrated AUROC was 0.743, AUPRC 0.697, sensitivity 0.790, and Brier score 0.198. Raw AUROC was 0.743; calibrated probabilities are the reported risk output.",
+      "metrics": {
+        "auroc": 0.743,
+        "auprc": 0.6966,
+        "brier_score": 0.1985,
+        "sensitivity": 0.7905,
+        "specificity": 0.5103,
+        "ppv": 0.539,
+        "npv": 0.7708,
+        "f1": 0.6409,
+        "threshold": 0.3011,
+        "n_total": 1000,
+        "n_positive": 420
+      },
+      "subgroup_gaps": {
+        "age_band_65_to_74": -0.0095,
+        "age_band_75_plus": 0.1123,
+        "age_band_under_65": -0.0292,
+        "sex_F": 0.0366,
+        "sex_M": -0.0288,
+        "admission_urgency_elective": -0.1139,
+        "admission_urgency_emergency": 0.2029,
+        "surgery_type_abdominal": -0.0405,
+        "surgery_type_cardiac": 0.2095,
+        "surgery_type_orthopaedic": -0.5238,
+        "surgery_type_vascular": 0.0537,
+        "has_notes_0": 0.0984,
+        "has_notes_1": -0.0738,
+        "sofa_quartile_q1_lowest": -0.4762,
+        "sofa_quartile_q2": -0.1366,
+        "sofa_quartile_q3": 0.1179,
+        "sofa_quartile_q4_highest": 0.1964
+      }
+    },
+    {
+      "name": "data_availability_moe",
+      "verdict": "CONDITIONAL",
+      "conditions": "Conditional retrospective simulation only. Validate prospectively before use, treat t24 as full-information reference rather than clean prospective prediction, and audit no-notes, surgical, and high-uncertainty subgroups.",
+      "narrative": "Data-availability MoE trained three shallow LightGBM experts: structured fallback, with-notes, and no-notes MNAR-context. At t24 on held-out test data, calibrated belief AUROC was 0.859, AUPRC 0.813, sensitivity 0.705, and Brier 0.151. Validation selected lambda_with=0.0 and lambda_no=0.0.",
+      "metrics": {
+        "auroc": 0.8594,
+        "auprc": 0.813,
+        "brier_score": 0.1508,
+        "sensitivity": 0.7048,
+        "specificity": 0.8466,
+        "ppv": 0.7688,
+        "npv": 0.7984,
+        "f1": 0.7354,
+        "threshold": 0.4963,
+        "n_total": 1000,
+        "n_positive": 420
+      },
+      "subgroup_gaps": {
+        "admission_urgency_elective": -0.136,
+        "admission_urgency_emergency": 0.2423,
+        "age_band_65_to_74": -0.0286,
+        "age_band_75_plus": 0.0869,
+        "age_band_under_65": -0.0134,
+        "has_notes_route_no_notes": 0.0952,
+        "has_notes_route_with_notes": -0.0714,
+        "sex_F": 0.0304,
+        "sex_M": -0.0239,
+        "surgery_type_abdominal": -0.1344,
+        "surgery_type_cardiac": 0.2888,
+        "surgery_type_orthopaedic": -0.4548,
+        "surgery_type_vascular": -0.0035
       }
     }
   ],
